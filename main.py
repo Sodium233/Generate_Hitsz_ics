@@ -14,14 +14,23 @@ def main():
         client.clear_cookies()
         print("已清理本地 cookies")
         return
-
+    
     try:
         schedule = client.fetch_schedule()
     except Exception as e:
         logging.warning("首次拉取课表失败，尝试登录后重试: %s", e)
-        client.login()
-        schedule = client.fetch_schedule()
-
+        try:
+            client.login()
+            isloggedin = 1
+        except Exception as login_error:
+            logging.error("登录失败: %s", login_error)
+            raise RuntimeError("登录失败，无法获取课表") from login_error
+        try:
+            schedule = client.fetch_schedule()
+        except Exception as retry_error:
+            logging.error("登录后仍无法获取课表: %s", retry_error)
+            raise RuntimeError("登录成功但课表获取失败") from retry_error
+    
     print("获得第"+config.XN+"学年第"+config.XQ+"学期的课表数据")
     # 将数据保存到本地文件
     with open(config.SCHEDULE_FILE, "w", encoding="utf-8") as f:
@@ -30,5 +39,9 @@ def main():
     ##生成课表ICS文件
     ics_gen.generate_ics_from_json(config.SCHEDULE_FILE, config.FIRST_DAY, output_path=config.SCHEDULE_FILE.replace(".json", ".ics"))
     print(f"课表已保存到 {config.SCHEDULE_FILE} 和 {config.SCHEDULE_FILE.replace('.json', '.ics')}")
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"错误: {e}")

@@ -86,7 +86,11 @@ class JWClient:
             "dllt": "generalLogin",
         }
         resp = self.session.post(self.LOGIN_PAGE_URL, data=form_data, timeout=15)
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except Exception as e:
+            LOGGER.error("登录请求失败: %s, 响应内容: %s", resp.status_code, resp.text[:200])
+            raise
         return resp
 
     def login(self):
@@ -98,29 +102,28 @@ class JWClient:
                 self.clear_cookies()
                 html = self._fetch_login_page()
             else:
-                LOGGER.exception("登录页面获取失败")
+                LOGGER.error("登录页面获取失败")
                 raise RuntimeError("登录页面获取失败，请检查网络") from exc
         except Exception as exc:
-            LOGGER.exception("登录页面获取失败")
+            LOGGER.error("登录页面获取失败")
             raise RuntimeError("登录页面获取失败，请检查网络") from exc
 
         try:
             lt, execution, salt = parse_login_page(html)
         except Exception as exc:
-            LOGGER.exception("登录页面解析失败")
+            LOGGER.error("登录页面解析失败")
             raise RuntimeError("登录页面解析失败，请检查页面结构") from exc
 
         try:
             encrypted_pwd = encrypt_password(config.PASSWORD, salt)
         except Exception as exc:
-            LOGGER.exception("密码加密失败")
+            LOGGER.error("密码加密失败")
             raise RuntimeError("密码加密失败，请确认 encrypt.js 可用") from exc
 
         try:
             resp = self._submit_login(lt, execution, encrypted_pwd)
         except requests.RequestException as exc:
-            LOGGER.exception("登录请求失败")
-            raise RuntimeError("登录请求失败，请检查网络或账号密码") from exc
+            raise
 
         if "为了您的信息安全，需要进行身份认证" in resp.text:
             print("输入1使用HIT APP验证码认证，输入2使用手机短信验证码认证")
@@ -147,30 +150,27 @@ class JWClient:
             "xq": config.XQ,
         }
 
-        def _fetch():
-            try:
-                return self.session.post(self.SCHEDULE_URL, data=data, timeout=15)
-            except requests.RequestException as exc:
-                LOGGER.exception("获取课表请求失败")
-                raise RuntimeError("获取课表请求失败，请检查网络") from exc
+        resp = self.session.post(self.SCHEDULE_URL, data=data, timeout=15)
 
-        resp = _fetch()
-        if resp.status_code in (401, 403):
-            LOGGER.warning("登录状态无效或接口拒绝，清理 cookie 并重新登录")
-            self.clear_cookies()
-            self.login()
-            resp = _fetch()
+        # 1️⃣ 先检查 HTTP 状态
+        try:
+            resp.raise_for_status()
+        except Exception as e:
+            LOGGER.error("课表请求失败: %s, 响应内容: %s", resp.status_code, resp.text[:200])
+            raise
 
-        if resp.status_code >= 400:
-            # 若仍 403，不要无限循环，这里给出明确提示
-            LOGGER.error("获取课表接口返回 HTTP 错误: %s", resp.status_code)
-            raise RuntimeError(f"获取课表失败，HTTP {resp.status_code}，可能需要手动重新登录或检查权限")
+        # 2️⃣ 检查 Content-Type（防止拿到 HTML）
+        content_type = resp.headers.get("Content-Type", "")
+        if "application/json" not in content_type:
+            LOGGER.error("返回不是 JSON, Content-Type=%s, 内容=%s", content_type, resp.text[:200])
+            raise RuntimeError("课表接口返回非 JSON（可能未登录或被重定向）")
 
+        # 3️⃣ 再解析 JSON
         try:
             schedule = resp.json()
         except ValueError as exc:
-            LOGGER.exception("课表响应不是 JSON")
-            raise RuntimeError("课表响应不是有效 JSON") from exc
+            LOGGER.error("JSON 解析失败, 原始内容: %s", resp.text[:200])
+            raise RuntimeError("课表响应 JSON 格式错误") from exc
 
         self._save_cookies()
         return schedule
