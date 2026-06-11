@@ -26,4 +26,5 @@ dist/
 .idea/
 
 # Sensitive data
+config.py
 data/cookies.json
