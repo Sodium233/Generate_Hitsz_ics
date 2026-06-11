@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+ENV/
+
+# Project local config
+config.py
+
+# Browser data and generated outputs
+browser_data/
+data/*.json
+data/*.ics
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
