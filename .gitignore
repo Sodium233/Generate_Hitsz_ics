@@ -28,3 +28,7 @@ dist/
 # Sensitive data
 config.py
 data/cookies.json
+
+# Generated schedule files
+data/schedule.json
+data/schedule.ics
