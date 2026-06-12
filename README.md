@@ -1,4 +1,4 @@
-# PlaywrightDemo
+# Generate ICS
 
 这是一个基于 Python + Playwright 的课程表抓取与 ICS 导出工具。
 

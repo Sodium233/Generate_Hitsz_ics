@@ -28,13 +28,37 @@ def parse_course_info(sksj):
     # 先收集所有 [] 里的内容
     brackets = re.findall(r"\[(.*?)\]", sksj)
 
+    # 用正则识别各字段，避免 "周健友" 中的 "周" 被误判为周次信息
+    week_pattern = re.compile(r"\d.*周")       # 周次: 含数字 + 周 (如 "1-13周", "10,11-13周")
+    section_pattern = re.compile(r"\d.*节")    # 节次: 含数字 + 节 (如 "9-10节", "5-6节")
+    location_pattern = re.compile(r"^[A-Za-z]\d+")  # 教室: 字母开头 + 数字 (如 T5505, K526)
+    teacher_pattern = re.compile(r"^[一-鿿]{2,4}$")  # 中文姓名: 2-4个汉字
+
+    # 过滤掉周次和节次信息
+    info_items = []
     for item in brackets:
-        if "周" in item:
+        if week_pattern.search(item) or section_pattern.search(item):
             continue
-        elif teacher == "":
-            teacher = item
-        else:
+        info_items.append(item)
+
+    # 识别教室 (优先匹配标准教室编号如 T5505, K526)
+    for item in info_items:
+        if location_pattern.match(item):
             location = item
+            break
+
+    # 识别教师 (纯中文姓名, 2-4 个汉字)
+    for item in info_items:
+        if item != location and teacher_pattern.match(item):
+            teacher = item
+            break
+
+    # 回退: 如果还没找到教室, 从剩余非教师项中取 (处理 "活动中心3楼" 等中文地点)
+    if location == "无地点":
+        for item in info_items:
+            if item != teacher:
+                location = item
+                break
 
     # 课程名 = 所有不以 [ 开头的前几行
     for line in lines:
