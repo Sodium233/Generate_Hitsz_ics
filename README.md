@@ -29,11 +29,8 @@
 
 2. 配置账号信息
 
-   复制 `config.example.py` 为 `config.py`，并填写你的用户名、密码和学年学期信息：
-
-   ```bash
-   cp config.example.py config.py
-   ```
+   复制 `config.example.json` 为 `config.json`，并填写你的用户名、密码和学年学期信息：
+   可以删除掉作为示例的 `schedule.examplae.json` ， `schedule.example.ics` ， 和 `config.example.json`
 
 3. 运行程序
 
@@ -48,6 +45,6 @@
 
 ## 注意事项
 
-- 请不要把真实的 `config.py` 提交到版本控制。
+- 请不要把真实的 `config.json` 提交到版本控制。
 - 如果登录过程需要二次验证（2FA），程序会在终端中提示输入验证码。
 - 生成的课程表文件可能包含个人隐私信息，请谨慎处理。

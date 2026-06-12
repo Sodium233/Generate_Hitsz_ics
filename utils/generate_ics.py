@@ -158,7 +158,7 @@ def generate_ics(courses, first_monday):
     return "\n".join(ics)
 
 
-def generate_ics_from_json(json_file, first_monday_str, output_path="schedule.ics"):
+def generate_ics_from_json(json_file, first_monday_str, output_path):
 
     first_monday = datetime.strptime(first_monday_str, "%Y-%m-%d")
 

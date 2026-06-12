@@ -8,12 +8,14 @@ venv/
 ENV/
 
 # Project local config
-config.py
+config/config.json
 
 # Browser data and generated outputs
 browser_data/
-data/*.json
-data/*.ics
+data/schedule.json
+data/schedule.ics
+webkit_data/
+
 
 # Logs
 *.log
